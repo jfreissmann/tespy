@@ -21,7 +21,7 @@ import numpy as np
 
 from tespy.components.components import component
 
-from tespy.tools.data_containers import dc_simple
+from tespy.tools.data_containers import dc_simple, dc_cp
 
 # %%
 
@@ -88,13 +88,21 @@ class cycle_closer(component):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'cycle closer'
 
-    def inlets(self):
+    @staticmethod
+    def attr():
+        return {'mass_deviation': dc_cp(val=0, max_val=1e-3, printout=False),
+                'fluid_deviation': dc_cp(val=0, max_val=1e-5, printout=False)}
+
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -147,6 +155,18 @@ class cycle_closer(component):
 
         return self.mat_deriv
 
+    def calc_parameters(self):
+
+        self.mass_deviation.val = np.abs(self.inl[0].m.val_SI -
+                                         self.outl[0].m.val_SI)
+
+        d1 = self.inl[0].fluid.val
+        d2 = self.outl[0].fluid.val
+        diff = [d1[key] - d2[key] for key in d1.keys()]
+        self.fluid_deviation.val = np.linalg.norm(diff)
+
+        self.check_parameter_bounds()
+
 # %%
 
 
@@ -180,10 +200,12 @@ class sink(component):
     'a labeled sink'
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'sink'
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
 # %%
@@ -219,10 +241,12 @@ class source(component):
     'a labeled source'
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'source'
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
 # %%
@@ -315,20 +339,22 @@ class subsystem_interface(component):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'subsystem interface'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_inter': dc_simple()}
 
     def inlets(self):
-        if self.num_inter.val_set:
+        if self.num_inter.is_set:
             return ['in' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['in1']
 
     def outlets(self):
-        if self.num_inter.val_set:
+        if self.num_inter.is_set:
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']

@@ -35,7 +35,8 @@ from tabulate import tabulate
 
 from tespy import connections as con
 
-from tespy.components.basics import sink, source, subsystem_interface
+from tespy.components.basics import (sink, source, subsystem_interface,
+                                     cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
@@ -477,7 +478,7 @@ class network:
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
-            for c in subsys.conns:
+            for c in subsys.conns.values():
                 self.add_conns(c)
 
     def add_nwks(self, *args):
@@ -536,24 +537,31 @@ class network:
 
     def check_conns(self):
         r"""
-        Checks the networks connections for multiple usage of inlets or outlets
-        of components.
+        Check the networks connections for multiple usage of inlets or outlets.
         """
-        dub = self.conns.loc[
-                self.conns.duplicated(['s', 's_id']) == True].index
-        for c in dub:
-            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        for c in dub.index:
+            targets = ''
+            for conns in self.conns[(self.conns.s == c.s) &
+                                    (self.conns.s_id == c.s_id)].index:
+                targets += conns.t.label + ' (' + conns.t_id + '); '
+
+            msg = ('The source ' + c.s.label + ' (' + c.s_id + ') is attached '
+                   'to more than one target: ' + targets[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[
-                self.conns.duplicated(['t', 't_id']) == True].index
-        for c in dub:
-            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        for c in dub.index:
+            sources = ''
+            for conns in self.conns[(self.conns.t == c.t) &
+                                    (self.conns.t_id == c.t_id)].index:
+                sources += conns.s.label + ' (' + conns.s_id + '); '
+
+            msg = ('The target ' + c.t.label + ' (' + c.t_id + ') is attached '
+                   'to more than one source: ' + sources[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1215,7 +1223,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
+        if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
+                not isinstance(c.t, cycle_closer)) or
                 isinstance(c.t, heat_exchanger) or
                 isinstance(c.t, subsystem_interface)):
 
@@ -1279,7 +1288,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
+        if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
+                not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
                 isinstance(c.s, subsystem_interface)):
 
@@ -1397,15 +1407,15 @@ class network:
 
             # starting values for specified subcooling/overheating
             # and state specification
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1986,16 +1996,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.02
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
@@ -2897,7 +2907,7 @@ class network:
         # state property
         key = 'state'
         df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'val_set'))
+        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
         for val in self.fluids:
@@ -2991,7 +3001,7 @@ class network:
                 elif isinstance(data, dc.dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'val_set'))
+                                                args=(col, 'is_set'))
 
                 # component property container
                 elif isinstance(data, dc.dc_gcp):

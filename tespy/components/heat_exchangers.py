@@ -89,10 +89,10 @@ class heat_exchanger_simple(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -109,7 +109,7 @@ class heat_exchanger_simple(component):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : String/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -192,10 +192,12 @@ class heat_exchanger_simple(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger simple'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -208,10 +210,12 @@ class heat_exchanger_simple(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -237,9 +241,9 @@ class heat_exchanger_simple(component):
         if is_set:
             self.hydro_group.set_attr(is_set=True)
             if self.hydro_group.method == 'HW':
-                method = 'Hazen-Williams equation.'
+                method = 'Hazen-Williams equation'
             else:
-                method = 'darcy friction factor.'
+                method = 'darcy friction factor'
             msg = ('Pressure loss calculation from pipe dimensions method is '
                    'set to ' + method + '.')
             logging.debug(msg)
@@ -805,7 +809,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -813,12 +817,12 @@ class solar_collector(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.solar_collector.additional_equations`
+        - :func:`tespy.components.heat_exchangers.solar_collector.additional_equations`
 
     Inlets/Outlets
 
@@ -843,10 +847,10 @@ class solar_collector(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -863,7 +867,7 @@ class solar_collector(heat_exchanger_simple):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : String/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -941,10 +945,12 @@ class solar_collector(heat_exchanger_simple):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'solar collector'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -961,12 +967,6 @@ class solar_collector(heat_exchanger_simple):
                 'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -982,12 +982,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
+        elif self.hydro_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -1003,12 +1003,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.energy_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set:
+        elif self.energy_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -1027,7 +1027,7 @@ class solar_collector(heat_exchanger_simple):
 
             **optional equations**
 
-            - :func:`tespy.components.components.solar_collector.energy_func`
+            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
 
         Returns
         -------
@@ -1101,8 +1101,9 @@ class solar_collector(heat_exchanger_simple):
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
-                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+        return (i[0] * (o[2] - i[2]) -
+                self.A.val * (self.E.val * self.eta_opt.val -
+                (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
                 self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):
@@ -1117,7 +1118,8 @@ class solar_collector(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+        if self.energy_group.is_set is True:
+            self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
 
@@ -1135,10 +1137,9 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
-        **heat exchanger**
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
@@ -1146,8 +1147,6 @@ class heat_exchanger(component):
         .. math::
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        **heat exchanger**
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
@@ -1188,13 +1187,13 @@ class heat_exchanger(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -1280,10 +1279,12 @@ class heat_exchanger(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -1295,10 +1296,12 @@ class heat_exchanger(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
     def comp_init(self, nw):
@@ -1598,7 +1601,7 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                return self.inl[0].m.val_SI
@@ -1631,7 +1634,7 @@ class heat_exchanger(component):
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                deriv[0, 0, 0] = 1
@@ -1680,14 +1683,14 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
 
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[1] == 2 or c[1] == 4 or c[1] == 5:
 #                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
@@ -2150,13 +2153,13 @@ class condenser(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2259,10 +2262,12 @@ class condenser(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'condenser'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -2389,13 +2394,13 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are physically
           infeasible.
         """
-        if self.zero_flag.val_set:
+        if self.zero_flag.is_set:
             return self.inl[0].p.val_SI - self.inl[0].p.design
 
         i1 = self.inl[0].to_flow()
@@ -2515,13 +2520,13 @@ class desuperheater(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    Q : String/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : String/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2607,7 +2612,8 @@ class desuperheater(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'desuperheater'
 
     def additional_equations(self):

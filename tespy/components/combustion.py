@@ -89,9 +89,6 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str/tespy.helpers.dc_simple
-        Fuel for the combustion chamber, see list of available fluids above.
-
     lamb : float/tespy.helpers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
 
@@ -153,19 +150,22 @@ class combustion_chamber(component):
     1208.4
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber'
 
-    def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+    @staticmethod
+    def attr():
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -673,7 +673,7 @@ class combustion_chamber(component):
 
             .. math::
 
-                \begin{split}
+                \begin{split}s
                 res = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
                 & - \sum_j \dot{m}_{out,j} \cdot
@@ -692,7 +692,7 @@ class combustion_chamber(component):
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
         chamber uses a different reference, you will find it in the
-        :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+        :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
         documentation.
 
         - Reference temperature: 293.15 K.
@@ -1017,7 +1017,8 @@ class combustion_chamber(component):
             if fuel_found is True:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         outlet.
@@ -1047,7 +1048,8 @@ class combustion_chamber(component):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
         Returns a starting value for pressure and enthalpy at component's
         inlet.
@@ -1263,10 +1265,12 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber stoichiometric flue gas'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
                 'air': dc_simple(), 'air_alias': dc_simple(),
                 'path': dc_simple(),
@@ -1274,13 +1278,16 @@ class combustion_chamber_stoich(combustion_chamber):
                 'ti': dc_cp(min_val=0),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
-    def fuels(self):
+    @staticmethod
+    def fuels():
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
 
@@ -1291,12 +1298,12 @@ class combustion_chamber_stoich(combustion_chamber):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.val_set or not isinstance(self.fuel.val, dict):
+        if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.fuel_alias.val_set:
+        if not self.fuel_alias.is_set:
             msg = 'Must specify fuel alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1305,12 +1312,12 @@ class combustion_chamber_stoich(combustion_chamber):
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air.val_set or not isinstance(self.air.val, dict):
+        if not self.air.is_set or not isinstance(self.air.val, dict):
             msg = 'Must specify air composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air_alias.val_set:
+        if not self.air_alias.is_set:
             msg = 'Must specify air alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1552,7 +1559,7 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in self.fg.keys():
             self.fg[f] /= m_fg
 
-        if not self.path.val_set:
+        if not self.path.is_set:
             self.path.val = None
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI,
@@ -1940,24 +1947,24 @@ class combustion_engine(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_engine.reaction_balance`
-        - :func:`tespy.components.components.combustion_engine.fluid_func`
+        - :func:`tespy.components.combustion.combustion_engine.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_engine.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.combustion_engine.mass_flow_func`
+        - :func:`tespy.components.combustion.combustion_engine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :func:`tespy.components.components.combustion_engine.energy_balance`
+        - :func:`tespy.components.combustion.combustion_engine.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_engine.lambda_func`
-        - :func:`tespy.components.components.combustion_engine.ti_func`
-        - :func:`tespy.components.components.combustion_engine.Q1_func`
-        - :func:`tespy.components.components.combustion_engine.Q2_func`
+        - :func:`tespy.components.combustion.combustion_engine.lambda_func`
+        - :func:`tespy.components.combustion.combustion_engine.ti_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q1_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q2_func`
 
         .. math::
 
@@ -1998,9 +2005,6 @@ class combustion_engine(combustion_chamber):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
-
-    fuel : str
-        Fuel for the combustion chamber, see list of available fluids above.
 
     lamb : float/tespy.helpers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
@@ -2123,12 +2127,13 @@ class combustion_engine(combustion_chamber):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion engine'
 
-    def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+    @staticmethod
+    def attr():
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'P': dc_cp(val=1e6, d=1, min_val=1),
                 'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),
@@ -2143,10 +2148,12 @@ class combustion_engine(combustion_chamber):
                 'Qloss_char': dc_cc(method='QLOSS'),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2', 'in3', 'in4']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
@@ -3074,8 +3081,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the combustion's outlet.
+        Calculate reaction balance for generic starting values at outlet.
 
         Parameters
         ----------
@@ -3130,10 +3136,10 @@ class combustion_engine(combustion_chamber):
             if not o.fluid.val_set[fluid] and fluid in fg.keys():
                 o.fluid.val[fluid] = fg[fluid]
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -3160,10 +3166,10 @@ class combustion_engine(combustion_chamber):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -3194,8 +3200,6 @@ class combustion_engine(combustion_chamber):
         r"""
         Postprocessing parameter calculation.
         """
-        combustion_chamber.calc_parameters(self)
-
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -3227,4 +3231,4 @@ class combustion_engine(combustion_chamber):
         self.Q1_char.func.get_bound_errors(expr, self.label)
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
-        self.check_parameter_bounds()
+        combustion_chamber.calc_parameters(self)
