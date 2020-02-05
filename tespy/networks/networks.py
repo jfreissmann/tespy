@@ -35,7 +35,8 @@ from tabulate import tabulate
 
 from tespy import connections as con
 
-from tespy.components.basics import sink, source, subsystem_interface
+from tespy.components.basics import (sink, source, subsystem_interface,
+                                     cycle_closer)
 from tespy.components.combustion import combustion_chamber, combustion_engine
 from tespy.components.heat_exchangers import heat_exchanger
 from tespy.components.nodes import drum, merge, splitter
@@ -277,8 +278,7 @@ class network:
 
     def set_attr(self, **kwargs):
         r"""
-        Sets, resets or unsets attributes of a network for provided keyword
-        arguments.
+        Set, resets or unsets attributes of a network.
 
         Parameters
         ----------
@@ -447,7 +447,7 @@ class network:
 
     def get_attr(self, key):
         r"""
-        Get the value of a networks attribute.
+        Get the value of a network attribute.
 
         Parameters
         ----------
@@ -468,7 +468,7 @@ class network:
 
     def add_subsys(self, *args):
         r"""
-        Adds one or more subsystem to the network.
+        Add one or more subsystems to the network.
 
         Parameters
         ----------
@@ -477,12 +477,12 @@ class network:
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
         for subsys in args:
-            for c in subsys.conns:
+            for c in subsys.conns.values():
                 self.add_conns(c)
 
     def add_nwks(self, *args):
         """
-        adds connections from another network
+        Add connections from a different network.
 
         :param args: network objects si :code:`add_subsys(s1, s2, s3, ...)`
         :type args: tespy.networks.network
@@ -494,7 +494,7 @@ class network:
 
     def add_conns(self, *args):
         r"""
-        Adds one or more connections to the network.
+        Add one or more connections to the network.
 
         Parameters
         ----------
@@ -518,7 +518,7 @@ class network:
 
     def del_conns(self, *args):
         """
-        Removes one or more connections from the network.
+        Remove one or more connections from the network.
 
         Parameters
         ----------
@@ -535,31 +535,36 @@ class network:
         self.checked = False
 
     def check_conns(self):
-        r"""
-        Checks the networks connections for multiple usage of inlets or outlets
-        of components.
-        """
-        dub = self.conns.loc[
-                self.conns.duplicated(['s', 's_id']) == True].index
-        for c in dub:
-            msg = ('The source ' + str(c.s.label) + ' (' + str(c.s_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        r"""Check connections for multiple usage of inlets or outlets."""
+        dub = self.conns.loc[self.conns.duplicated(['s', 's_id']) == True]
+        for c in dub.index:
+            targets = ''
+            for conns in self.conns[(self.conns.s == c.s) &
+                                    (self.conns.s_id == c.s_id)].index:
+                targets += conns.t.label + ' (' + conns.t_id + '); '
+
+            msg = ('The source ' + c.s.label + ' (' + c.s_id + ') is attached '
+                   'to more than one target: ' + targets[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        dub = self.conns.loc[
-                self.conns.duplicated(['t', 't_id']) == True].index
-        for c in dub:
-            msg = ('The target ' + str(c.t.label) + ' (' + str(c.t_id) +
-                   ') is attached to more than one connection. Please check '
-                   'your network.')
+        dub = self.conns.loc[self.conns.duplicated(['t', 't_id']) == True]
+        for c in dub.index:
+            sources = ''
+            for conns in self.conns[(self.conns.t == c.t) &
+                                    (self.conns.t_id == c.t_id)].index:
+                sources += conns.s.label + ' (' + conns.s_id + '); '
+
+            msg = ('The target ' + c.t.label + ' (' + c.t_id + ') is attached '
+                   'to more than one source: ' + sources[:-2] + '. '
+                   'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
     def add_busses(self, *args):
         r"""
-        Adds one or more busses to the network.
+        Add one or more busses to the network.
 
         Parameters
         ----------
@@ -575,7 +580,7 @@ class network:
 
     def del_busses(self, *args):
         r"""
-        Removes one or more busses from the network.
+        Remove one or more busses from the network.
 
         Parameters
         ----------
@@ -591,8 +596,7 @@ class network:
 
     def check_busses(self, b):
         r"""
-        Checks the busses to be added for type, duplicates and identical
-        labels.
+        Checksthe busses to be added for type, duplicates and identical labels.
 
         Parameters
         ----------
@@ -621,9 +625,7 @@ class network:
             raise TypeError(msg)
 
     def check_network(self):
-        r"""
-        Checks if all components are connected properly within the network.
-        """
+        r"""Check if components are connected properly within the network."""
         self.check_conns()
         # get unique components in connections dataframe
         comps = pd.unique(self.conns[['s', 't']].values.ravel())
@@ -658,8 +660,9 @@ class network:
 
     def init_components(self, comps):
         r"""
-        Sets up a dataframe for the network's components and checks, if all
-        components have unique labels.
+        Set up a dataframe for the network's components.
+
+        Additionally, check, if all components have unique labels.
 
         Note
         ----
@@ -696,18 +699,18 @@ class network:
 
     def initialise(self):
         r"""
-        Initilialises the network depending on calclation mode.
+        Initilialise the network depending on calclation mode.
 
         Design
 
-            - Generic fluid composition and fluid property initialisation.
-            - Starting values from initialisation path if provided.
+        - Generic fluid composition and fluid property initialisation.
+        - Starting values from initialisation path if provided.
 
         Offdesign
 
-            - Check offdesign path specification.
-            - Set component and connection design point properties.
-            - Switch from design/offdesign parameter specification.
+        - Check offdesign path specification.
+        - Set component and connection design point properties.
+        - Switch from design/offdesign parameter specification.
         """
         if len(self.conns) == 0:
             msg = ('No connections have been added to the network, please '
@@ -754,11 +757,13 @@ class network:
 
     def init_design(self):
         r"""
-        Initialise a design calculation. Offdesign parameters are unset, design
-        parameters are set. If local_offdesign is True for connections or
-        components, the design point information are read from the .csv-files
-        in the respective design_path. In this case, the design values are
-        unset, the offdesign values set.
+        Initialise a design calculation.
+
+        Offdesign parameters are unset, design parameters are set. If
+        :code:`local_offdesign` is True for connections or components, the
+        design point information are read from the .csv-files in the respective
+        :code:`design_path`. In this case, the design values are unset, the
+        offdesign values set.
         """
         # connections
         for c in self.conns.index:
@@ -876,8 +881,9 @@ class network:
 
     def init_offdesign_params(self):
         r"""
-        Read design point information from specified :code:`design_path`. If
-        a :code:`design_path` has been specified individually for components
+        Read design point information from specified :code:`design_path`.
+
+        If a :code:`design_path` has been specified individually for components
         or connections, the data will be read from the specified individual
         path instead.
 
@@ -1104,7 +1110,7 @@ class network:
 
     def init_fluids(self):
         r"""
-        Initialises the fluid vector on every connection of the network.
+        Initialise the fluid vector on every connection of the network.
 
         - Create fluid vector for every component as dict,
           index: nw.fluids,
@@ -1202,9 +1208,14 @@ class network:
 
     def init_target(self, c, start):
         r"""
-        Propagates the fluids towards connection's target with recursive
-        function calls. If the target is a sink, a merge or a combustion
-        chamber, the propagation stops.
+        Propagate the fluids towards connection's target in recursion.
+
+        The propagation stops, if the component is a
+
+        - sink,
+        - merge,
+        - combustion chamber or
+        - cycle_closer.
 
         Parameters
         ----------
@@ -1215,7 +1226,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 or
+        if ((len(c.t.inlets()) == 1 and len(c.t.outlets()) == 1 and
+                not isinstance(c.t, cycle_closer)) or
                 isinstance(c.t, heat_exchanger) or
                 isinstance(c.t, subsystem_interface)):
 
@@ -1266,9 +1278,13 @@ class network:
 
     def init_source(self, c, start):
         r"""
-        Propagates the fluids towards connection's source with recursive
-        function calls. If the source is a source or a combustion chamber,
-        the propagation stops.
+        Propagate the fluids towards connection's source in recursion.
+
+        The propagation stops, if the component is a
+
+        - source,
+        - combustion chamber or
+        - cycle_closer.
 
         Parameters
         ----------
@@ -1279,7 +1295,8 @@ class network:
             This connection is the fluid propagation starting point.
             The starting connection is saved to prevent infinite looping.
         """
-        if (len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 or
+        if ((len(c.s.inlets()) == 1 and len(c.s.outlets()) == 1 and
+                not isinstance(c.s, cycle_closer)) or
                 isinstance(c.s, heat_exchanger) or
                 isinstance(c.s, subsystem_interface)):
 
@@ -1330,7 +1347,7 @@ class network:
 
     def init_properties(self):
         r"""
-        Initialises the fluid properties on every connection of the network.
+        Initialise the fluid properties on every connection of the network.
 
         - Sets standard values for :code:`m0, p0, h0` if not user specified
         - Sets :code:`var = var0` if var_set is False.
@@ -1397,15 +1414,15 @@ class network:
 
             # starting values for specified subcooling/overheating
             # and state specification
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set is True) or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set is True) or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1415,8 +1432,10 @@ class network:
 
     def init_val0(self, c, key):
         r"""
-        Set starting values for fluid properties. The components classes
-        provide generic starting values for its inlets and outlets.
+        Set starting values for fluid properties.
+
+        The component classes provide generic starting values for their inlets
+        and outlets.
 
         Parameters
         ----------
@@ -1454,7 +1473,7 @@ class network:
 
     def init_csv(self):
         r"""
-        Init file reader for starting value generation of calculation.
+        Read starting values from specified init_path.
 
         Note
         ----
@@ -1507,7 +1526,7 @@ class network:
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, init_only=False):
         r"""
-        Solves the network. Tasks:
+        Solve the network.
 
         - Check network consistency.
         - Initialise calculation and preprocessing.
@@ -1636,9 +1655,7 @@ class network:
         logging.info(msg)
 
     def solve_loop(self):
-        r"""
-        Loop of the newton algorithm
-        """
+        r"""Loop of the newton algorithm."""
         self.start_time = time()
         self.progress = True
 
@@ -1674,10 +1691,7 @@ class network:
             logging.warning(msg)
 
     def solve_determination(self):
-        r"""
-        Checks, if the number of supplied parameters is sufficient for network
-        determination.
-        """
+        r"""Check, if the number of supplied parameters is sufficient."""
         vec_res = []
         self.num_comp_vars = 0
         for cp in self.comps.index:
@@ -1834,7 +1848,7 @@ class network:
 
     def solve_control(self):
         r"""
-        Step of the newton algorithm
+        Control iteration step of the newton algorithm.
 
         - Calculate the residual value for each equation
         - Calculate the jacobian matrix
@@ -1917,7 +1931,7 @@ class network:
 
     def property_range_message(self, c, prop):
         r"""
-        Returns debugging message for fluid property range adjustments.
+        Return debugging message for fluid property range adjustments.
 
         Parameters
         ----------
@@ -1948,8 +1962,7 @@ class network:
 
     def solve_check_props(self, c):
         r"""
-        Checks for invalid fluid properties of pressure, temperature and
-        enthalpy in solution progress and adjusts values if necessary.
+        Check for invalid fluid property values.
 
         Parameters
         ----------
@@ -1986,16 +1999,16 @@ class network:
                 c.h.val_SI = hmax * 0.9
                 logging.debug(self.property_range_message(c, 'h'))
 
-            if ((c.Td_bp.val_set is True or c.state.val_set is True) and
+            if ((c.Td_bp.val_set is True or c.state.is_set is True) and
                     c.h.val_set is False and self.iter < 3):
                 if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.val_set is True)):
+                        (c.state.val == 'g' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 1)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.02
                         logging.debug(self.property_range_message(c, 'h'))
                 elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.val_set is True)):
+                      (c.state.val == 'l' and c.state.is_set is True)):
                     h = fp.h_mix_pQ(c.to_flow(), 0)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.98
@@ -2032,15 +2045,13 @@ class network:
 
     def solve_check_temperature(self, c):
         r"""
-        Checks if temperature is within user specified limits and adjusts
-        enthalpy values if necessary.
+        Check if temperature is within user specified limits.
 
         Parameters
         ----------
         c : tespy.connections.connection
             Connection to check fluid properties.
         """
-
         hmin = fp.h_mix_pT(c.to_flow(), self.T_range_SI[0])
         hmax = fp.h_mix_pT(c.to_flow(), self.T_range_SI[1])
 
@@ -2057,8 +2068,7 @@ class network:
 
     def solve_components(self):
         r"""
-        Calculates the equations and the partial derivatives of the network's
-        components.
+        Calculate the residual and derivatives of component equations.
 
         - Iterate through components in network to get residuals and
           derivatives.
@@ -2116,18 +2126,13 @@ class network:
 
     def solve_connections(self):
         r"""
-        Calculates the residual values and the partial derivatives for the
-        network's connections equations.
+        Calculate the residual and derivatives of connection equations.
 
         - Iterate through connections in network to get residuals and
           derivatives.
         - Place residual values in residual value vector of the network.
         - Place partial derivatives in jacobian matrix of the network.
         """
-
-        # TODO: place specified parameters for mass flow, pressure, enthalpy
-        # once
-
         # fetch component equation residuals and component partial derivatives
         data = network.solve_conn(args=(self, [self.conns], ))
 
@@ -2229,8 +2234,7 @@ class network:
 
     def solve_busses(self):
         r"""
-        Calculates the equations and the partial derivatives for the network's
-        busses.
+        Calculate the equations and the partial derivatives for the busses.
 
         - Iterate through busses in network to get residuals and derivatives.
         - Place residual values in residual value vector of the network.
@@ -2265,8 +2269,7 @@ class network:
 
     def solve_prop_eq(self, c, var):
         r"""
-        Calculate residuals for given mass flow, volumetric flow, pressure,
-        enthalpy, temperature, volumetric flow or vapour mass fraction.
+        Calculate residuals for specified fluid properties.
 
         Parameters
         ----------
@@ -2348,8 +2351,7 @@ class network:
 
     def solve_prop_ref_eq(self, c, var):
         r"""
-        Calculate residuals for referenced mass flow, pressure, enthalpy or
-        temperature.
+        Calculate residuals for referenced fluid properties.
 
         Parameters
         ----------
@@ -2377,7 +2379,6 @@ class network:
             val = T \left( p_{j}, h_{j}, fluid_{j} \right) -
             T \left( p_{j}, h_{j}, fluid_{j} \right) \cdot a + b
         """
-
         if var in ['m', 'p', 'h']:
 
             if c.get_attr(var).ref_set is True:
@@ -2402,8 +2403,7 @@ class network:
 
     def solve_prop_deriv(self, c, var):
         r"""
-        Calculate derivatives for given mass flow, pressure, enthalpy,
-        temperature, volumetric flow or vapour mass fraction.
+        Calculate derivatives for specfied fluid properties.
 
         Parameters
         ----------
@@ -2482,7 +2482,6 @@ class network:
             J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
             \text{for equation i, connection j, x: vapour mass fraction}
         """
-
         if var in ['m', 'p', 'h']:
             if c.get_attr(var).val_set is True:
                 pos = {'m': 0, 'p': 1, 'h': 2}
@@ -2552,8 +2551,7 @@ class network:
 
     def solve_prop_ref_deriv(self, c, var):
         r"""
-        Calculate derivatives for referenced mass flow, pressure, enthalpy,
-        or temperature.
+        Calculate derivatives for referenced fluid properties.
 
         Parameters
         ----------
@@ -2597,7 +2595,6 @@ class network:
             \; , \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
         """
-
         if var in ['m', 'p', 'h']:
 
             if c.get_attr(var).ref_set is True:
@@ -2639,9 +2636,7 @@ class network:
                 return None
 
     def post_processing(self):
-        r"""
-        Calculate bus, component parameters and connection parameters.
-        """
+        r"""Calculate bus, component parameters and connection parameters."""
         # components
         self.comps.apply(network.process_components, axis=1)
 
@@ -2686,8 +2681,7 @@ class network:
 # %% printing and plotting
 
     def print_results(self):
-        r"""Print the calculations results to prompt.
-        """
+        r"""Print the calculations results to prompt."""
         cp_sort = self.comps.copy()
         # sort components by component type alphabetically
         cp_sort['cp'] = cp_sort.apply(network.get_class_base, axis=1)
@@ -2897,7 +2891,7 @@ class network:
         # state property
         key = 'state'
         df[key] = self.conns.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'val_set'))
+        df[key + '_set'] = self.conns.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
         for val in self.fluids:
@@ -2991,7 +2985,7 @@ class network:
                 elif isinstance(data, dc.dc_simple):
                     df[col] = df.apply(f, axis=1, args=(col, 'val'))
                     df[col + '_set'] = df.apply(f, axis=1,
-                                                args=(col, 'val_set'))
+                                                args=(col, 'is_set'))
 
                 # component property container
                 elif isinstance(data, dc.dc_gcp):
@@ -3100,21 +3094,15 @@ class network:
                           '.')
 
     def get_id(c):
-        """
-        TODO: docs
-        """
+        """Return the id of the python object."""
         return str(c.name)[str(c.name).find(' at ') + 4:-1]
 
     def get_class_base(c):
-        """
-        TODO: docs
-        """
+        """Return the class name."""
         return c.name.__class__.__name__
 
     def get_props(c, *args):
-        """
-        TODO: docs
-        """
+        """Return properties."""
         if hasattr(c.name, args[0]):
             if (not isinstance(c.name.get_attr(args[0]), int) and
                     not isinstance(c.name.get_attr(args[0]), str) and
@@ -3145,9 +3133,7 @@ class network:
             return ''
 
     def get_busses(c, *args):
-        """
-        TODO: docs
-        """
+        """Return the list of busses a component is integrated in."""
         busses = []
         for bus in args[0]:
             if c.name in bus.comps.index:
@@ -3155,9 +3141,7 @@ class network:
         return busses
 
     def get_bus_data(c, *args):
-        """
-        TODO: docs
-        """
+        """Return bus information of a component."""
         items = []
         if args[1] == 'char':
             for bus in args[0]:

@@ -117,7 +117,7 @@ class specification_error_tests:
         self.set_attr_TypeError(self.comp, P=[5])
         self.set_attr_TypeError(self.comp, tiP_char=None)
         self.set_attr_TypeError(self.comp, design='f')
-        self.set_attr_TypeError(self.comp, fuel=dc_cp(val='CH4'))
+        self.set_attr_TypeError(self.comp, lamb=dc_cc())
         self.set_attr_TypeError(self.comp, design_path=7)
         self.set_attr_TypeError(self.comp, local_design=5)
         self.set_attr_TypeError(self.comp, local_offdesign=5)
@@ -153,6 +153,7 @@ class specification_error_tests:
         self.create_ref_TypeError([self.comp, 1, 0])
 
         # KeyErrors
+        self.set_attr_KeyError(dc_cc(), x=7)
         self.set_attr_KeyError(self.comp, wow=5)
         self.set_attr_KeyError(self.conn, jey=5)
         self.set_attr_KeyError(self.bus, power_output=100000)
@@ -348,6 +349,7 @@ def test_subsys_label_forbidden():
 ##############################################################################
 # characteristics
 
+
 @raises(ValueError)
 def test_char_number_of_points():
     char_line(x=[0, 1, 2], y=[1, 2, 3, 4])
@@ -362,9 +364,11 @@ def test_char_map_number_of_points():
 def test_char_map_number_of_dimensions():
     char_map(x=[0, 1, 2], y=[[1, 2, 3, 4], [1, 2, 3, 4]])
 
+
 @raises(FileNotFoundError)
 def test_missing_char_files():
     load_custom_char('stuff', char_line)
+
 
 @raises(FileNotFoundError)
 def test_missing_char_files():
@@ -616,7 +620,7 @@ def test_compressor_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()
@@ -634,7 +638,7 @@ def test_turbine_missing_char_parameter():
     c1 = connection(so, 'out1', instance, 'in1')
     c2 = connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
-    instance.set_attr(eta_s_char=dc_cc(method='GENERIC',
+    instance.set_attr(eta_s_char=dc_cc(func=char_line([0, 1], [1, 2]),
                                        is_set=True, param=None))
     nw.solve('design', init_only=True)
     instance.eta_s_char_func()

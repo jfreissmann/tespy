@@ -89,8 +89,20 @@ class combustion_chamber(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str/tespy.helpers.dc_simple
-        Fuel for the combustion chamber, see list of available fluids above.
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     lamb : float/tespy.helpers.dc_cp
         Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
@@ -153,19 +165,22 @@ class combustion_chamber(component):
     1208.4
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber'
 
-    def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+    @staticmethod
+    def attr():
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
-                'S': dc_cp()}
+                'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -178,8 +193,8 @@ class combustion_chamber(component):
         self.fuel_list = []
         fuels = ['methane', 'ethane', 'propane', 'butane', 'hydrogen']
         for f in fuels:
-            self.fuel_list += [x for x in nw.fluids if x in [a.replace(' ', '')
-                               for a in CP.get_aliases(f)]]
+            self.fuel_list += [x for x in nw.fluids if x in [
+                a.replace(' ', '') for a in CP.get_aliases(f)]]
 
         if len(self.fuel_list) == 0:
             msg = ('Your network\'s fluids do not contain any fuels, that are '
@@ -194,14 +209,14 @@ class combustion_chamber(component):
                    self.component() + ' are: ' + str(self.fuel_list) + '.')
             logging.debug(msg)
 
-        self.o2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-                   for a in CP.get_aliases('O2')]][0]
-        self.co2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-                    for a in CP.get_aliases('CO2')]][0]
-        self.h2o = [x for x in nw.fluids if x in [a.replace(' ', '')
-                    for a in CP.get_aliases('H2O')]][0]
-        self.n2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-                   for a in CP.get_aliases('N2')]][0]
+        self.o2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('O2')]][0]
+        self.co2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('CO2')]][0]
+        self.h2o = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2O')]][0]
+        self.n2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('N2')]][0]
 
         self.fuels = {}
         for f in self.fuel_list:
@@ -216,7 +231,7 @@ class combustion_chamber(component):
 
     def calc_lhv(self, f):
         r"""
-        calculates the lower heating value of the combustion chambers fuel.
+        Calculate the lower heating value of the combustion chamber's fuel.
 
         Parameters
         ----------
@@ -229,6 +244,7 @@ class combustion_chamber(component):
             Lower heating value of the combustion chambers fuel.
 
             .. math::
+
                 LHV = -\frac{\sum_i {\Delta H_f^0}_i -
                 \sum_j {\Delta H_f^0}_j }
                 {M_{fuel}}\\
@@ -261,7 +277,7 @@ class combustion_chamber(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations for this component.
 
         Returns
         -------
@@ -302,7 +318,7 @@ class combustion_chamber(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -387,7 +403,7 @@ class combustion_chamber(component):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for all pressure equations.
+        Calculate the partial derivatives for all pressure equations.
 
         Returns
         -------
@@ -402,7 +418,7 @@ class combustion_chamber(component):
 
     def reaction_balance(self, fluid):
         r"""
-        Calculates the reaction balance for one fluid.
+        Calculate the reaction balance for one fluid.
 
         - determine molar mass flows of fuel and oxygen
         - calculate mole number of carbon and hydrogen atoms in fuel
@@ -500,7 +516,6 @@ class combustion_chamber(component):
         res : float
             Residual value of equation.
         """
-
         if isinstance(self, combustion_engine):
             inl = self.inl[2:]
             outl = self.outl[2:]
@@ -592,8 +607,7 @@ class combustion_chamber(component):
 
     def rb_numeric_deriv(self, dx, pos, fluid):
         r"""
-        Calculates derivative of the reaction balance to dx at components inlet
-        or outlet in position pos for the fluid fluid.
+        Calculate derivative of the reaction balance to dx.
 
         Parameters
         ----------
@@ -664,7 +678,7 @@ class combustion_chamber(component):
 
     def energy_balance(self):
         r"""
-        Calculates the energy balance of the adiabatic combustion chamber.
+        Calculate the energy balance of the adiabatic combustion chamber.
 
         Returns
         -------
@@ -692,7 +706,7 @@ class combustion_chamber(component):
         referring to the lower heating value, the necessary enthalpy
         difference for evaporation is added. The stoichiometric combustion
         chamber uses a different reference, you will find it in the
-        :func:`tespy.components.components.combustion_chamber_stoich.energy_balance`
+        :func:`tespy.components.combustion.combustion_chamber_stoich.energy_balance`
         documentation.
 
         - Reference temperature: 293.15 K.
@@ -729,7 +743,7 @@ class combustion_chamber(component):
 
     def lambda_func(self):
         r"""
-        Calculates the residual for specified lambda.
+        Calculate the residual for specified lambda.
 
         Returns
         -------
@@ -769,7 +783,7 @@ class combustion_chamber(component):
 
     def ti_func(self):
         r"""
-        Calculates the residual for specified thermal input.
+        Calculate the residual for specified thermal input.
 
         Returns
         -------
@@ -784,7 +798,7 @@ class combustion_chamber(component):
 
     def calc_ti(self):
         r"""
-        Calculates the thermal input of the combustion chamber.
+        Calculate the thermal input of the combustion chamber.
 
         Returns
         -------
@@ -812,7 +826,7 @@ class combustion_chamber(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -838,7 +852,7 @@ class combustion_chamber(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate the matrix of partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -861,8 +875,7 @@ class combustion_chamber(component):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the component's outlet.
+        Calculate reaction balance for good generic flue gas starting values.
 
         Parameters
         ----------
@@ -919,7 +932,7 @@ class combustion_chamber(component):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1017,10 +1030,10 @@ class combustion_chamber(component):
             if fuel_found is True:
                 fuel_inlet.m.val_SI = air_tmp / 25
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -1047,10 +1060,10 @@ class combustion_chamber(component):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -1078,9 +1091,7 @@ class combustion_chamber(component):
             return 5e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         self.ti.val = self.calc_ti()
 
         n_h = 0
@@ -1160,6 +1171,21 @@ class combustion_chamber_stoich(combustion_chamber):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     fuel : dict
         Fuel composition, e. g. :code:`{'CH4': 0.96, 'CO2': 0.04}`.
@@ -1263,10 +1289,12 @@ class combustion_chamber_stoich(combustion_chamber):
     >>> shutil.rmtree('./LUT', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion chamber stoichiometric flue gas'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'fuel': dc_simple(), 'fuel_alias': dc_simple(),
                 'air': dc_simple(), 'air_alias': dc_simple(),
                 'path': dc_simple(),
@@ -1274,13 +1302,16 @@ class combustion_chamber_stoich(combustion_chamber):
                 'ti': dc_cp(min_val=0),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
-    def fuels(self):
+    @staticmethod
+    def fuels():
         return ['methane', 'ethane', 'propane', 'butane',
                 'hydrogen']
 
@@ -1291,12 +1322,12 @@ class combustion_chamber_stoich(combustion_chamber):
         self.m_deriv = self.mass_flow_deriv()
         self.p_deriv = self.pressure_deriv()
 
-        if not self.fuel.val_set or not isinstance(self.fuel.val, dict):
+        if not self.fuel.is_set or not isinstance(self.fuel.val, dict):
             msg = 'Must specify fuel composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.fuel_alias.val_set:
+        if not self.fuel_alias.is_set:
             msg = 'Must specify fuel alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1305,12 +1336,12 @@ class combustion_chamber_stoich(combustion_chamber):
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air.val_set or not isinstance(self.air.val, dict):
+        if not self.air.is_set or not isinstance(self.air.val, dict):
             msg = 'Must specify air composition for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
 
-        if not self.air_alias.val_set:
+        if not self.air_alias.is_set:
             msg = 'Must specify air alias for combustion chamber.'
             logging.error(msg)
             raise TESPyComponentError(msg)
@@ -1322,15 +1353,15 @@ class combustion_chamber_stoich(combustion_chamber):
         # adjust the names for required fluids according to naming in the
         # network air
         for f in self.air.val.keys():
-            alias = [x for x in nw.fluids if x in [a.replace(' ', '')
-                     for a in CP.get_aliases(f)]]
+            alias = [x for x in nw.fluids if x in [
+                a.replace(' ', '') for a in CP.get_aliases(f)]]
             if len(alias) > 0:
                 self.air.val[alias[0]] = self.air.val.pop(f)
 
         # fuel
         for f in self.fuel.val.keys():
-            alias = [x for x in self.air.val.keys() if x in [a.replace(' ', '')
-                     for a in CP.get_aliases(f)]]
+            alias = [x for x in self.air.val.keys() if x in [
+                a.replace(' ', '') for a in CP.get_aliases(f)]]
             if len(alias) > 0:
                 self.fuel.val[alias[0]] = self.fuel.val.pop(f)
 
@@ -1338,8 +1369,8 @@ class combustion_chamber_stoich(combustion_chamber):
         fluids = list(self.air.val.keys()) + list(self.fuel.val.keys())
 
         # oxygen
-        alias = [x for x in fluids if x in [a.replace(' ', '')
-                 for a in CP.get_aliases('O2')]]
+        alias = [x for x in fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('O2')]]
         if len(alias) == 0:
             msg = 'Oxygen missing in input fluids.'
             logging.error(msg)
@@ -1348,16 +1379,16 @@ class combustion_chamber_stoich(combustion_chamber):
             self.o2 = alias[0]
 
         # carbondioxide
-        self.co2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-                    for a in CP.get_aliases('CO2')]]
+        self.co2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('CO2')]]
         if len(self.co2) == 0:
             self.co2 = 'CO2'
         else:
             self.co2 = self.co2[0]
 
         # water
-        self.h2o = [x for x in nw.fluids if x in [a.replace(' ', '')
-                    for a in CP.get_aliases('H2O')]]
+        self.h2o = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2O')]]
         if len(self.h2o) == 0:
             self.h2o = 'H2O'
         else:
@@ -1433,8 +1464,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def stoich_flue_gas(self, nw):
         r"""
-        Calculates the fluid composition of the stoichiometric flue gas and
-        creates a custom fluid.
+        Calculate the fluid composition of the stoichiometric flue gas.
 
         - uses one mole of fuel as reference quantity and :math:`\lambda=1`
           for stoichiometric flue gas calculation (no oxygen in flue gas)
@@ -1552,7 +1582,7 @@ class combustion_chamber_stoich(combustion_chamber):
         for f in self.fg.keys():
             self.fg[f] /= m_fg
 
-        if not self.path.val_set:
+        if not self.path.is_set:
             self.path.val = None
         tespy_fluid(self.fuel_alias.val, self.fuel.val,
                     [1000, nw.p_range_SI[1]], nw.T_range_SI,
@@ -1578,7 +1608,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def reaction_balance(self, fluid):
         r"""
-        Calculates the reaction balance for one fluid.
+        Calculate the reaction balance for one fluid.
 
         - determine molar mass flows of fuel and oxygen
         - calculate excess fuel
@@ -1701,7 +1731,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def energy_balance(self):
         r"""
-        Calculates the energy balance of the adiabatic combustion chamber.
+        Calculate the energy balance of the adiabatic combustion chamber.
 
         Returns
         -------
@@ -1709,6 +1739,7 @@ class combustion_chamber_stoich(combustion_chamber):
             Residual value of equation.
 
             .. math::
+
                 res = \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right) - \sum_j \dot{m}_{out,j}
                 \cdot \left( h_{out,j} - h_{out,j,ref} \right) +
@@ -1740,7 +1771,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def lambda_func(self):
         r"""
-        Calculates the residual for specified lambda.
+        Calculate the residual for specified lambda.
 
         Returns
         -------
@@ -1768,7 +1799,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def ti_func(self):
         r"""
-        Calculates the residual for specified thermal input.
+        Calculate the residual for specified thermal input.
 
         Returns
         -------
@@ -1783,7 +1814,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def calc_ti(self):
         r"""
-        Calculates the thermal input of the combustion chamber.
+        Calculate the thermal input of the combustion chamber.
 
         Returns
         -------
@@ -1809,8 +1840,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the component's outlet.
+        Calculate reaction balance for good generic flue gas starting values.
 
         Parameters
         ----------
@@ -1831,7 +1861,7 @@ class combustion_chamber_stoich(combustion_chamber):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1883,9 +1913,7 @@ class combustion_chamber_stoich(combustion_chamber):
             self.lamb.val = 2
 
     def calc_parameters(self):
-        r"""
-        Post and preprocessing parameter calculation/specification.
-        """
+        r"""Postprocessing parameter calculation."""
         if self.air_alias.val in ['air', 'Air']:
             air = self.air_alias.val
         else:
@@ -1940,24 +1968,24 @@ class combustion_engine(combustion_chamber):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.combustion_engine.reaction_balance`
-        - :func:`tespy.components.components.combustion_engine.fluid_func`
+        - :func:`tespy.components.combustion.combustion_engine.reaction_balance`
+        - :func:`tespy.components.combustion.combustion_engine.fluid_func`
           (for cooling water)
-        - :func:`tespy.components.components.combustion_engine.mass_flow_func`
+        - :func:`tespy.components.combustion.combustion_engine.mass_flow_func`
 
         .. math::
 
             0 = p_{3,in} - p_{3,out}\\
             0 = p_{4,in} - p_{3,out}
 
-        - :func:`tespy.components.components.combustion_engine.energy_balance`
+        - :func:`tespy.components.combustion.combustion_engine.energy_balance`
 
         **optional equations**
 
-        - :func:`tespy.components.components.combustion_engine.lambda_func`
-        - :func:`tespy.components.components.combustion_engine.ti_func`
-        - :func:`tespy.components.components.combustion_engine.Q1_func`
-        - :func:`tespy.components.components.combustion_engine.Q2_func`
+        - :func:`tespy.components.combustion.combustion_engine.lambda_func`
+        - :func:`tespy.components.combustion.combustion_engine.ti_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q1_func`
+        - :func:`tespy.components.combustion.combustion_engine.Q2_func`
 
         .. math::
 
@@ -1999,8 +2027,20 @@ class combustion_engine(combustion_chamber):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    fuel : str
-        Fuel for the combustion chamber, see list of available fluids above.
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     lamb : float/tespy.helpers.dc_cp
         Air to stoichiometric air ratio, :math:`\lambda/1`.
@@ -2123,12 +2163,13 @@ class combustion_engine(combustion_chamber):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'combustion engine'
 
-    def attr(self):
-        return {'fuel': dc_simple(),
-                'lamb': dc_cp(min_val=1),
+    @staticmethod
+    def attr():
+        return {'lamb': dc_cp(min_val=1),
                 'ti': dc_cp(min_val=0),
                 'P': dc_cp(val=1e6, d=1, min_val=1),
                 'Q1': dc_cp(min_val=1), 'Q2': dc_cp(min_val=1),
@@ -2137,16 +2178,18 @@ class combustion_engine(combustion_chamber):
                 'pr2': dc_cp(max_val=1),
                 'zeta1': dc_cp(min_val=0),
                 'zeta2': dc_cp(min_val=0),
-                'tiP_char': dc_cc(method='TI'),
-                'Q1_char': dc_cc(method='Q1'),
-                'Q2_char': dc_cc(method='Q2'),
-                'Qloss_char': dc_cc(method='QLOSS'),
+                'tiP_char': dc_cc(),
+                'Q1_char': dc_cc(),
+                'Q2_char': dc_cc(),
+                'Qloss_char': dc_cc(),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2', 'in3', 'in4']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
@@ -2173,7 +2216,7 @@ class combustion_engine(combustion_chamber):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations for this component.
 
         Returns
         -------
@@ -2257,7 +2300,7 @@ class combustion_engine(combustion_chamber):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -2467,8 +2510,7 @@ class combustion_engine(combustion_chamber):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for cooling loop fluid balance
-        equations.
+        Calculate the vector of residual values for cooling loop fluid balance.
 
         Returns
         -------
@@ -2489,8 +2531,7 @@ class combustion_engine(combustion_chamber):
 
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value for component's mass flow balance.
 
         Returns
         -------
@@ -2503,7 +2544,6 @@ class combustion_engine(combustion_chamber):
                 \forall i \in [1, 2]\\
                 0 = \dot{m}_{in,3} + \dot{m}_{in,4} - \dot{m}_{out,3}
         """
-
         vec_res = []
         for i in range(2):
             vec_res += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
@@ -2513,8 +2553,7 @@ class combustion_engine(combustion_chamber):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for cooling loop fluid balance
-        equations.
+        Calculate the partial derivatives for cooling loop fluid balance.
 
         Returns
         -------
@@ -2532,7 +2571,7 @@ class combustion_engine(combustion_chamber):
 
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate the partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -2551,7 +2590,7 @@ class combustion_engine(combustion_chamber):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for combustion pressure equations.
+        Calculate the partial derivatives for combustion pressure equations.
 
         Returns
         -------
@@ -2567,7 +2606,7 @@ class combustion_engine(combustion_chamber):
 
     def energy_balance(self):
         r"""
-        Calculates the energy balance of the combustion engine.
+        Calculate the energy balance of the combustion engine.
 
         Returns
         -------
@@ -2634,7 +2673,7 @@ class combustion_engine(combustion_chamber):
 
     def bus_func(self, bus):
         r"""
-        Calculates the value of the bus function.
+        Calculate the value of the bus function.
 
         Parameters
         ----------
@@ -2668,7 +2707,6 @@ class combustion_engine(combustion_chamber):
                 \dot{Q}_1=\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)\\
                 \dot{Q}_2=\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right)
         """
-
         ######################################################################
         # value for bus parameter of thermal input (TI)
         if bus.param == 'TI':
@@ -2750,7 +2788,7 @@ class combustion_engine(combustion_chamber):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate the matrix of partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -2839,7 +2877,7 @@ class combustion_engine(combustion_chamber):
 
     def Q1_func(self):
         r"""
-        Calculates residual value with specified Q1.
+        Calculate residual value with specified Q1.
 
         Returns
         -------
@@ -2858,7 +2896,7 @@ class combustion_engine(combustion_chamber):
 
     def Q2_func(self):
         r"""
-        Calculates residual value with specified Q2.
+        Calculate residual value with specified Q2.
 
         Returns
         -------
@@ -2877,8 +2915,7 @@ class combustion_engine(combustion_chamber):
 
     def tiP_char_func(self):
         r"""
-        Calculates the relation of output power and thermal input from
-        specified characteristic line.
+        Calculate the relation of output power and thermal input.
 
         Returns
         -------
@@ -2901,8 +2938,7 @@ class combustion_engine(combustion_chamber):
 
     def Q1_char_func(self):
         r"""
-        Calculates the relation of heat output 1 and thermal input from
-        specified characteristic lines.
+        Calculate the relation of heat output 1 and thermal input.
 
         Returns
         -------
@@ -2935,8 +2971,7 @@ class combustion_engine(combustion_chamber):
 
     def Q2_char_func(self):
         r"""
-        Calculates the relation of heat output 2 and thermal input from
-        specified characteristic lines.
+        Calculate the relation of heat output 2 and thermal input.
 
         Returns
         -------
@@ -2969,8 +3004,7 @@ class combustion_engine(combustion_chamber):
 
     def Qloss_char_func(self):
         r"""
-        Calculates the relation of heat loss and thermal input from
-        specified characteristic lines.
+        Calculate the relation of heat loss and thermal input.
 
         Returns
         -------
@@ -2999,7 +3033,7 @@ class combustion_engine(combustion_chamber):
 
     def calc_ti(self):
         r"""
-        Calculates the thermal input of the combustion engine.
+        Calculate the thermal input of the combustion engine.
 
         Returns
         -------
@@ -3013,7 +3047,6 @@ class combustion_engine(combustion_chamber):
 
                 \forall i \in [3,4]
         """
-
         ti = 0
         for f in self.fuel_list:
             m = 0
@@ -3029,7 +3062,7 @@ class combustion_engine(combustion_chamber):
 
     def calc_P(self):
         r"""
-        Calculates the power output of the combustion engine.
+        Calculate the power output of the combustion engine.
 
         Returns
         -------
@@ -3051,7 +3084,7 @@ class combustion_engine(combustion_chamber):
 
     def calc_Qloss(self):
         r"""
-        Calculates the heat loss of the combustion engine.
+        Calculate the heat loss of the combustion engine.
 
         Returns
         -------
@@ -3074,8 +3107,7 @@ class combustion_engine(combustion_chamber):
 
     def initialise_fluids(self, nw):
         r"""
-        Calculates reaction balance with given lambda of 3 for good generic
-        starting values at the combustion's outlet.
+        Calculate reaction balance for generic starting values at outlet.
 
         Parameters
         ----------
@@ -3130,10 +3162,10 @@ class combustion_engine(combustion_chamber):
             if not o.fluid.val_set[fluid] and fluid in fg.keys():
                 o.fluid.val[fluid] = fg[fluid]
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -3160,10 +3192,10 @@ class combustion_engine(combustion_chamber):
         elif key == 'h':
             return 10e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -3191,11 +3223,7 @@ class combustion_engine(combustion_chamber):
             return 5e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
-        combustion_chamber.calc_parameters(self)
-
+        r"""Postprocessing parameter calculation."""
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -3227,4 +3255,4 @@ class combustion_engine(combustion_chamber):
         self.Q1_char.func.get_bound_errors(expr, self.label)
         self.Q2_char.func.get_bound_errors(expr, self.label)
 
-        self.check_parameter_bounds()
+        combustion_chamber.calc_parameters(self)

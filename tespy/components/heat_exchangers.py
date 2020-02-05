@@ -89,10 +89,25 @@ class heat_exchanger_simple(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -109,7 +124,7 @@ class heat_exchanger_simple(component):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -118,10 +133,9 @@ class heat_exchanger_simple(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient, provide x and y
-        values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+    kA_char : tespy.helpers.dc_cc
+        Characteristic curve for heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature
@@ -192,10 +206,12 @@ class heat_exchanger_simple(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger simple'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -208,10 +224,12 @@ class heat_exchanger_simple(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'hydro_group': dc_gcp(), 'kA_group': dc_gcp()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -237,9 +255,9 @@ class heat_exchanger_simple(component):
         if is_set:
             self.hydro_group.set_attr(is_set=True)
             if self.hydro_group.method == 'HW':
-                method = 'Hazen-Williams equation.'
+                method = 'Hazen-Williams equation'
             else:
-                method = 'darcy friction factor.'
+                method = 'darcy friction factor'
             msg = ('Pressure loss calculation from pipe dimensions method is '
                    'set to ' + method + '.')
             logging.debug(msg)
@@ -328,8 +346,7 @@ class heat_exchanger_simple(component):
 
     def additional_equations(self):
         r"""
-        Calculate vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -353,7 +370,7 @@ class heat_exchanger_simple(component):
 
     def derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -432,8 +449,7 @@ class heat_exchanger_simple(component):
 
     def additional_derivatives(self):
         r"""
-        Calculate matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -480,7 +496,7 @@ class heat_exchanger_simple(component):
 
     def Q_deriv(self):
         r"""
-        Calculate the matrix of partial derivatives for heat transfer equation.
+        Calculate partial derivatives for heat transfer equation.
 
         Returns
         -------
@@ -657,7 +673,7 @@ class heat_exchanger_simple(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculate the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -805,7 +821,7 @@ class solar_collector(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -813,12 +829,12 @@ class solar_collector(heat_exchanger_simple):
 
         - :func:`tespy.components.components.component.zeta_func`
 
-        - :func:`tespy.components.components.heat_exchanger_simple.darcy_func`
-          or :func:`tespy.components.components.heat_exchanger_simple.hw_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.darcy_func`
+          or :func:`tespy.components.heat_exchangers.heat_exchanger_simple.hw_func`
 
         **additional equations**
 
-        - :func:`tespy.components.components.solar_collector.additional_equations`
+        - :func:`tespy.components.heat_exchangers.solar_collector.additional_equations`
 
     Inlets/Outlets
 
@@ -843,10 +859,25 @@ class solar_collector(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -863,7 +894,7 @@ class solar_collector(heat_exchanger_simple):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : str/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -941,10 +972,12 @@ class solar_collector(heat_exchanger_simple):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'solar collector'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(),
                 'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
@@ -961,12 +994,6 @@ class solar_collector(heat_exchanger_simple):
                 'SQ': dc_simple(),
                 'hydro_group': dc_gcp(), 'energy_group': dc_gcp()}
 
-    def inlets(self):
-        return ['in1']
-
-    def outlets(self):
-        return ['out1']
-
     def comp_init(self, nw):
 
         component.comp_init(self, nw)
@@ -982,12 +1009,12 @@ class solar_collector(heat_exchanger_simple):
 
         is_set = True
         for e in self.hydro_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.hydro_group.set_attr(is_set=True)
-        elif self.hydro_group.is_set:
+        elif self.hydro_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: L, ks, D at ' + self.label + '. '
@@ -998,17 +1025,18 @@ class solar_collector(heat_exchanger_simple):
             self.hydro_group.set_attr(is_set=False)
 
         # parameters for energy group
-        self.energy_group.set_attr(elements=[self.E, self.eta_opt, self.lkf_lin,
-                                             self.lkf_quad, self.A, self.Tamb])
+        self.energy_group.set_attr(
+            elements=[self.E, self.eta_opt, self.lkf_lin,
+                      self.lkf_quad, self.A, self.Tamb])
 
         is_set = True
         for e in self.energy_group.elements:
-            if not e.is_set:
+            if e.is_set is False:
                 is_set = False
 
-        if is_set:
+        if is_set is True:
             self.energy_group.set_attr(is_set=True)
-        elif self.energy_group.is_set:
+        elif self.energy_group.is_set is True:
             msg = ('All parameters of the component group have to be '
                    'specified! This component group uses the following '
                    'parameters: E, eta_opt, lkf_lin, lkf_quad, A, Tamb at ' +
@@ -1020,14 +1048,13 @@ class solar_collector(heat_exchanger_simple):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
             **optional equations**
 
-            - :func:`tespy.components.components.solar_collector.energy_func`
+            - :func:`tespy.components.heat_exchangers.solar_collector.energy_func`
 
         Returns
         -------
@@ -1045,8 +1072,7 @@ class solar_collector(heat_exchanger_simple):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1094,21 +1120,20 @@ class solar_collector(heat_exchanger_simple):
                 \left(T_m - T_{amb}\right)^2 \right]
                 \end{split}
         """
-
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
         T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
                T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
 
-        return (i[0] * (o[2] - i[2]) - self.A.val * (self.E.val *
-                self.eta_opt.val -(T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+        return (i[0] * (o[2] - i[2]) -
+                self.A.val * (
+                    self.E.val * self.eta_opt.val -
+                    (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
+                    self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
 
@@ -1117,7 +1142,8 @@ class solar_collector(heat_exchanger_simple):
         self.pr.val = o[1] / i[1]
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 /
                          (8 * i[0] ** 2 * (v_mix_ph(i) + v_mix_ph(o)) / 2))
-        self.Q_loss.val = self.E.val * self.A.val - self.Q.val
+        if self.energy_group.is_set is True:
+            self.Q_loss.val = self.E.val * self.A.val - self.Q.val
 
         self.check_parameter_bounds()
 
@@ -1135,10 +1161,9 @@ class heat_exchanger(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.heat_exchanger.fluid_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger.fluid_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.mass_flow_func`
 
-        **heat exchanger**
         - :func:`tespy.components.heat_exchangers.heat_exchanger.energy_func`
 
         **optional equations**
@@ -1146,8 +1171,6 @@ class heat_exchanger(component):
         .. math::
 
             0 = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right) - \dot{Q}
-
-        **heat exchanger**
 
         - :func:`tespy.components.heat_exchangers.heat_exchanger.kA_func`
         - :func:`tespy.components.heat_exchangers.heat_exchanger.ttd_u_func`
@@ -1188,13 +1211,28 @@ class heat_exchanger(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -1209,15 +1247,13 @@ class heat_exchanger(component):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'HE_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'HE_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Note
     ----
@@ -1280,10 +1316,12 @@ class heat_exchanger(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'heat exchanger'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -1295,10 +1333,12 @@ class heat_exchanger(component):
                 'SQ1': dc_simple(), 'SQ2': dc_simple(), 'Sirr': dc_simple(),
                 'zero_flag': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
     def comp_init(self, nw):
@@ -1310,7 +1350,7 @@ class heat_exchanger(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -1383,8 +1423,7 @@ class heat_exchanger(component):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Returns
         -------
@@ -1395,7 +1434,7 @@ class heat_exchanger(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -1491,8 +1530,7 @@ class heat_exchanger(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1503,8 +1541,7 @@ class heat_exchanger(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate residual values for fluid balance equations.
 
         Returns
         -------
@@ -1525,8 +1562,7 @@ class heat_exchanger(component):
 
     def mass_flow_func(self):
         r"""
-        Calculates the residual value for component's mass flow balance
-        equation.
+        Calculate the residual value for mass flow balance equation.
 
         Returns
         -------
@@ -1545,7 +1581,7 @@ class heat_exchanger(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1569,7 +1605,7 @@ class heat_exchanger(component):
 
     def mass_flow_deriv(self):
         r"""
-        Calculates the partial derivatives for all mass flow balance equations.
+        Calculate partial derivatives for all mass flow balance equations.
 
         Returns
         -------
@@ -1598,7 +1634,7 @@ class heat_exchanger(component):
                 0 = \dot{m}_{1,in} \cdot \left(h_{1,out} - h_{1,in} \right) +
                 \dot{m}_{2,in} \cdot \left(h_{2,out} - h_{2,in} \right)
         """
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                return self.inl[0].m.val_SI
@@ -1621,8 +1657,7 @@ class heat_exchanger(component):
 
     def energy_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for energy balance
-        equation.
+        Calculate partial derivatives for energy balance equation.
 
         Returns
         -------
@@ -1631,7 +1666,7 @@ class heat_exchanger(component):
         """
         deriv = np.zeros((1, 4, len(self.inl[0].fluid.val) + 3))
 
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[0] > 0 and c[1] < 3:
 #                deriv[0, 0, 0] = 1
@@ -1659,8 +1694,7 @@ class heat_exchanger(component):
 
     def kA_func(self):
         r"""
-        Equation for heat transfer from conditions on both sides of heat
-        exchanger.
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -1680,14 +1714,13 @@ class heat_exchanger(component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are not physically
           feasible.
         """
-
-#        if self.zero_flag.val_set:
+#        if self.zero_flag.is_set:
 #            c = self.zero_flag.val
 #            if c[1] == 2 or c[1] == 4 or c[1] == 5:
 #                T_i1 = T_mix_ph(self.inl[0].to_flow(), T0=self.inl[0].T.val_SI)
@@ -1707,7 +1740,6 @@ class heat_exchanger(component):
 #
 #            else:
 #                return self.outl[0].h.val_SI - self.inl[0].h.val_SI
-
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
         o1 = self.outl[0].to_flow()
@@ -1782,8 +1814,7 @@ class heat_exchanger(component):
 
     def ttd_u_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for upper temperature
-        difference equation.
+        Calculate partial derivatives of upper temperature difference equation.
 
         Returns
         -------
@@ -1818,8 +1849,7 @@ class heat_exchanger(component):
 
     def ttd_l_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for lower temperature
-        difference equation.
+        Calculate partial derivatives of lower temperature difference equation.
 
         Returns
         -------
@@ -1836,7 +1866,7 @@ class heat_exchanger(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -1866,7 +1896,7 @@ class heat_exchanger(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -1886,7 +1916,7 @@ class heat_exchanger(component):
 
     def convergence_check(self, nw):
         r"""
-        Performs a convergence check.
+        Perform a convergence check.
 
         Parameters
         ----------
@@ -1941,8 +1971,7 @@ class heat_exchanger(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -1978,8 +2007,7 @@ class heat_exchanger(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -2014,9 +2042,7 @@ class heat_exchanger(component):
                 return h_mix_pT(flow, T)
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         # connection information
         i1 = self.inl[0].to_flow()
         i2 = self.inl[1].to_flow()
@@ -2150,13 +2176,28 @@ class condenser(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2171,15 +2212,13 @@ class condenser(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     subcooling : bool
         Enable/disable subcooling, default value: disabled.
@@ -2259,10 +2298,12 @@ class condenser(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'condenser'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'Q': dc_cp(max_val=0),
                 'kA': dc_cp(min_val=0),
                 'td_log': dc_cp(min_val=0),
@@ -2277,8 +2318,7 @@ class condenser(heat_exchanger):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -2307,7 +2347,7 @@ class condenser(heat_exchanger):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -2348,8 +2388,7 @@ class condenser(heat_exchanger):
 
     def energy_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives for energy balance
-        equation.
+        Calculate partial derivatives for energy balance equation.
 
         Returns
         -------
@@ -2367,7 +2406,7 @@ class condenser(heat_exchanger):
 
     def kA_func(self):
         r"""
-        Equation for heat transfer from conditions on both sides of condenser.
+        Calculate heat transfer from heat transfer coefficient.
 
         Returns
         -------
@@ -2389,13 +2428,13 @@ class condenser(heat_exchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        class :func:`tespy.components.characteristics.char_line`.
+        module :func:`tespy.data`.
 
         - Calculate temperatures at inlets and outlets.
         - Perform value manipulation, if temperature levels are physically
           infeasible.
         """
-        if self.zero_flag.val_set:
+        if self.zero_flag.is_set:
             return self.inl[0].p.val_SI - self.inl[0].p.design
 
         i1 = self.inl[0].to_flow()
@@ -2463,6 +2502,8 @@ class condenser(heat_exchanger):
 
 class desuperheater(heat_exchanger):
     r"""
+    The desuperheater cools a fluid to the saturated gas state.
+
     Equations
 
         **mandatory equations**
@@ -2515,13 +2556,28 @@ class desuperheater(heat_exchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : Sring/float/tespy.helpers.dc_cp
+    pr1 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : Sring/float/tespy.helpers.dc_cp
+    pr2 : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     zeta1 : str/float/tespy.helpers.dc_cp
@@ -2536,15 +2592,13 @@ class desuperheater(heat_exchanger):
         Area independent heat transition coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at hot side, provide
-        x and y values or use generic values (e. g. calculated from design
-        case). Standard method 'COND_HOT', Parameter 'm'.
+    kA_char1 : tespy.helpers.dc_cc
+        Characteristic curve for hot side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
-    kA_char2 : str/tespy.helpers.dc_cc
-        Characteristic curve for heat transfer coefficient at cold side,
-        provide x and y values or use generic values (e. g. calculated from
-        design case). Standard method 'COND_COLD', Parameter 'm'.
+    kA_char2 : tespy.helpers.dc_cc
+        Characteristic curve for cold side heat transfer coefficient, provide
+        char_line as function :code:`func`. Standard parameter 'm'.
 
     Note
     ----
@@ -2607,13 +2661,13 @@ class desuperheater(heat_exchanger):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'desuperheater'
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for this
-        component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -2640,8 +2694,7 @@ class desuperheater(heat_exchanger):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------

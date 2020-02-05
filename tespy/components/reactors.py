@@ -32,6 +32,8 @@ from tespy.tools.global_vars import molar_masses
 
 class water_electrolyzer(component):
     r"""
+    The water electrolyzer produces hydrogen and oxygen from water and power.
+
     Equations
 
         **mandatory equations**
@@ -212,23 +214,27 @@ class water_electrolyzer(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'water electrolyzer'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'P': dc_cp(min_val=0),
                 'Q': dc_cp(max_val=0),
                 'eta': dc_cp(min_val=0, max_val=1),
                 'e': dc_cp(),
                 'pr_c': dc_cp(max_val=1),
                 'zeta': dc_cp(min_val=0),
-                'eta_char': dc_cc(method='GENERIC'),
+                'eta_char': dc_cc(),
                 'S': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2', 'out3']
 
     def comp_init(self, nw):
@@ -242,8 +248,8 @@ class water_electrolyzer(component):
 
         component.comp_init(self, nw)
 
-        o2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-              for a in CP.get_aliases('O2')]]
+        o2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('O2')]]
         if len(o2) == 0:
             msg = ('Missing oxygen in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -253,8 +259,8 @@ class water_electrolyzer(component):
         else:
             self.o2 = o2[0]
 
-        h2o = [x for x in nw.fluids if x in [a.replace(' ', '')
-               for a in CP.get_aliases('H2O')]]
+        h2o = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2O')]]
         if len(h2o) == 0:
             msg = ('Missing water in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -264,8 +270,8 @@ class water_electrolyzer(component):
         else:
             self.h2o = h2o[0]
 
-        h2 = [x for x in nw.fluids if x in [a.replace(' ', '')
-              for a in CP.get_aliases('H2')]]
+        h2 = [x for x in nw.fluids if x in [
+            a.replace(' ', '') for a in CP.get_aliases('H2')]]
         if len(h2) == 0:
             msg = ('Missing hydrogen in network fluids, component ' +
                    self.label + ' of type ' + self.component() +
@@ -279,7 +285,7 @@ class water_electrolyzer(component):
 
     def calc_e0(self):
         r"""
-        Calculates the minimum specific energy required for electrolysis.
+        Calculate the minimum specific energy required for electrolysis.
 
         Returns
         -------
@@ -294,7 +300,6 @@ class water_electrolyzer(component):
                 \forall j \in \text{reation educts},\\
                 \Delta H_f^0: \text{molar formation enthalpy}
         """
-
         hf = {}
         hf['H2O'] = -286
         hf['H2'] = 0
@@ -306,7 +311,7 @@ class water_electrolyzer(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -369,11 +374,13 @@ class water_electrolyzer(component):
             vec_res += [self.P.val - self.outl[2].m.val_SI * self.e.val]
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
+        # specified pressure ratio
         if self.pr_c.is_set:
             vec_res += [self.inl[0].p.val_SI * self.pr_c.val -
                         self.outl[0].p.val_SI]
 
+        ######################################################################
+        # specified zeta value
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
 
@@ -398,7 +405,7 @@ class water_electrolyzer(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -572,7 +579,6 @@ class water_electrolyzer(component):
             mat_deriv += deriv.tolist()
 
         ######################################################################
-        #pr_c.val = pressure ratio Druckverlust (als Faktor vorgegeben)
         # derivatives for zeta value
         if self.zeta.is_set:
 
@@ -629,6 +635,7 @@ class water_electrolyzer(component):
     def eta_char_func(self):
         r"""
         Equation for given efficiency characteristic of a water electrolyzer.
+
         Efficiency is linked to hydrogen production.
 
         Returns
@@ -648,15 +655,13 @@ class water_electrolyzer(component):
 
     def eta_char_deriv(self):
         r"""
-        Calculates the matrix of partial derivatives of the efficiency
-        characteristic function.
+        Calculate partial derivatives of the efficiency characteristic.
 
         Returns
         -------
         deriv : list
             Matrix of partial derivatives.
         """
-
         deriv = np.zeros((1, 5 + self.num_vars, self.num_fl + 3))
 
         deriv[0, 4, 0] = self.numeric_deriv(self.eta_char_func, 'm', 4)
@@ -669,7 +674,7 @@ class water_electrolyzer(component):
 
     def bus_func(self, bus):
         r"""
-        Calculates the residual value of the bus function.
+        Calculate the residual value of the bus function.
 
         Parameters
         ----------
@@ -727,7 +732,7 @@ class water_electrolyzer(component):
 
     def bus_deriv(self, bus):
         r"""
-        Calculates the matrix of partial derivatives of the bus function.
+        Calculate partial derivatives of the bus function.
 
         Parameters
         ----------
@@ -785,9 +790,9 @@ class water_electrolyzer(component):
 
     def energy_balance(self):
         r"""
-        Calculates the residual in energy balance of the adiabatic water
-        electrolyzer. The residual is the negative to the necessary power
-        input.
+        Calculate the residual in energy balance of the water electrolyzer.
+
+        The residual is the negative to the necessary power input.
 
         Returns
         -------
@@ -811,7 +816,7 @@ class water_electrolyzer(component):
         The temperature for the reference state is set to 20 °C, thus
         the feed water must be liquid as proposed in the calculation of
         the minimum specific energy consumption for electrolysis:
-        :func:`tespy.components.components.water_electrolyzer.calc_e0`.
+        :func:`tespy.components.reactors.water_electrolyzer.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
         reactor.
@@ -837,7 +842,7 @@ class water_electrolyzer(component):
 
     def initialise_fluids(self, nw):
         r"""
-        Sets values to pure fluid on water inlet and gas outlets.
+        Set values to pure fluid on water inlet and gas outlets.
 
         Parameters
         ----------
@@ -850,8 +855,7 @@ class water_electrolyzer(component):
 
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -882,8 +886,7 @@ class water_electrolyzer(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -913,9 +916,7 @@ class water_electrolyzer(component):
             return h_mix_pT(flow, T)
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         self.Q.val = - self.inl[0].m.val_SI * (self.outl[0].h.val_SI -
                                                self.inl[0].h.val_SI)
         self.pr_c.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI

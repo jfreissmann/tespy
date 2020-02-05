@@ -93,6 +93,9 @@ class connection:
     local_design : boolean
         Treat this connection in design mode in an offdesign calculation.
 
+    printout: boolean
+        Include this connection in the network's results printout.
+
     Note
     ----
     - The fluid balance parameter applies a balancing of the fluid vector on
@@ -190,10 +193,10 @@ class connection:
     state in this case.
 
     >>> so_si2.set_attr(state='l')
-    >>> so_si2.state.val_set
+    >>> so_si2.state.is_set
     True
     >>> so_si2.set_attr(state=np.nan)
-    >>> so_si2.state.val_set
+    >>> so_si2.state.is_set
     False
     """
 
@@ -321,6 +324,9 @@ class connection:
         local_design : boolean
             Treat this connection in design mode in an offdesign calculation.
 
+        printout: boolean
+            Include this connection in the network's results printout.
+
         Note
         ----
         - The fluid balance parameter applies a balancing of the fluid vector
@@ -375,7 +381,7 @@ class connection:
 
                 elif key == 'state':
                     if kwargs[key] in ['l', 'g']:
-                        self.state.set_attr(val=kwargs[key], val_set=True)
+                        self.state.set_attr(val=kwargs[key], is_set=True)
                     elif isinstance(kwargs[key], dc_simple):
                         self.state = kwargs[key]
                     else:
@@ -385,7 +391,7 @@ class connection:
                                 isinstance(kwargs[key], int)):
                             if np.isnan(kwargs[key]):
                                 self.state.set_attr(
-                                        val=kwargs[key], val_set=False
+                                        val=kwargs[key], is_set=False
                                         )
                             else:
                                 msg = ('Datatype for keyword argument ' +
@@ -518,7 +524,8 @@ class connection:
             logging.error(msg)
             raise KeyError(msg)
 
-    def attr(self):
+    @staticmethod
+    def attr():
         r"""
         Return available attributes of a connection.
 

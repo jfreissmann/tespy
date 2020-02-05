@@ -25,8 +25,7 @@ from tespy.tools.data_containers import dc_simple
 from tespy.tools.helpers import num_fluids
 from tespy.tools.fluid_properties import (
         T_mix_ph, dT_mix_dph, dT_mix_pdh, dT_mix_ph_dfluid,
-        h_mix_pQ, dh_mix_dpQ, h_mix_pT
-        )
+        h_mix_pQ, dh_mix_dpQ)
 
 # %%
 
@@ -48,9 +47,9 @@ class node(component):
 
         **additional equations**
 
-        - :func:`tespy.components.components.splitter.additional_equations`
-        - :func:`tespy.components.components.separator.additional_equations`
-        - :func:`tespy.components.components.merge.additional_equations`
+        - :func:`tespy.components.nodes.splitter.additional_equations`
+        - :func:`tespy.components.nodes.separator.additional_equations`
+        - :func:`tespy.components.nodes.merge.additional_equations`
 
     Inlets/Outlets
 
@@ -74,6 +73,21 @@ class node(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     num_in : float/tespy.helpers.dc_simple
         Number of inlets for this component, default value: 2.
@@ -146,22 +160,24 @@ class node(component):
     1.333
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'node'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_in': dc_simple(),
                 'num_out': dc_simple()}
 
     def inlets(self):
-        if self.num_in.val_set:
+        if self.num_in.is_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -176,7 +192,7 @@ class node(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -205,7 +221,7 @@ class node(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -236,7 +252,7 @@ class node(component):
 
             **mandatroy equations**
 
-            - :func:`tespy.components.components.node.fluid_func`
+            - :func:`tespy.components.nodes.node.fluid_func`
 
             .. math::
 
@@ -298,8 +314,7 @@ class node(component):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -329,8 +344,7 @@ class node(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -357,7 +371,7 @@ class node(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -382,7 +396,7 @@ class node(component):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for all pressure equations.
+        Calculate partial derivatives for all pressure equations.
 
         Returns
         -------
@@ -431,10 +445,10 @@ class node(component):
                         if not i.fluid.val_set[fluid]:
                             i.fluid.val[fluid] = c.fluid.val[fluid]
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -461,10 +475,10 @@ class node(component):
         elif key == 'h':
             return 5e5
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -502,7 +516,7 @@ class drum(component):
 
         **mandatory equations**
 
-        - :func:`tespy.components.components.drum.fluid_func`
+        - :func:`tespy.components.nodes.drum.fluid_func`
         - :func:`tespy.components.components.component.mass_flow_func`
 
         .. math::
@@ -541,6 +555,21 @@ class drum(component):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     Note
     ----
@@ -629,13 +658,16 @@ class drum(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'drum'
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
     def comp_init(self, nw):
@@ -648,7 +680,7 @@ class drum(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations.
 
         Returns
         -------
@@ -691,7 +723,7 @@ class drum(component):
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate partial derivatives for given equations.
 
         Returns
         -------
@@ -740,8 +772,7 @@ class drum(component):
 
     def fluid_func(self):
         r"""
-        Calculates the vector of residual values for component's fluid balance
-        equations.
+        Calculate the vector of residual values for fluid balance equations.
 
         Returns
         -------
@@ -763,7 +794,7 @@ class drum(component):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -779,7 +810,7 @@ class drum(component):
 
     def pressure_deriv(self):
         r"""
-        Calculates the partial derivatives for pressure equations.
+        Calculate partial derivatives for pressure equations.
 
         Returns
         -------
@@ -792,10 +823,10 @@ class drum(component):
             deriv[k, k + 1, 1] = -1
         return deriv.tolist()
 
-    def initialise_source(self, c, key):
+    @staticmethod
+    def initialise_source(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -826,10 +857,10 @@ class drum(component):
             else:
                 return h_mix_pQ(c.to_flow(), 1)
 
-    def initialise_target(self, c, key):
+    @staticmethod
+    def initialise_target(c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -905,6 +936,21 @@ class merge(node):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
     num_in : float/tespy.helpers.dc_simple
         Number of inlets for this component, default value: 2.
 
@@ -961,27 +1007,29 @@ class merge(node):
     True
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'merge'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_in': dc_simple(),
                 'zero_flag': dc_simple()}
 
     def inlets(self):
-        if self.num_in.val_set:
+        if self.num_in.is_set:
             return ['in' + str(i + 1) for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1024,8 +1072,7 @@ class merge(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1054,7 +1101,7 @@ class merge(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1094,7 +1141,7 @@ class separator(node):
 
         **additional equations**
 
-        - :func:`tespy.components.components.separator.additional_equations`
+        - :func:`tespy.components.nodes.separator.additional_equations`
 
     Inlets/Outlets
 
@@ -1108,10 +1155,10 @@ class separator(node):
            :alt: alternative text
            :align: center
 
-    TODO
-
-        - fluid separation requires power and cooling, equations have not
-          been implemented!
+    Todo
+    ----
+    - fluid separation requires power and cooling, equations have not been
+      implemented!
 
     Parameters
     ----------
@@ -1123,6 +1170,21 @@ class separator(node):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     num_out : float/tespy.helpers.dc_simple
         Number of outlets for this component, default value: 2.
@@ -1180,17 +1242,20 @@ class separator(node):
     0.65
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'separator'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_out': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -1198,8 +1263,7 @@ class separator(node):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1239,8 +1303,7 @@ class separator(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1273,7 +1336,7 @@ class separator(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1293,7 +1356,8 @@ class separator(node):
             j += 1
         return deriv.tolist()
 
-    def initialise_fluids(self, nw):
+    @staticmethod
+    def initialise_fluids(nw):
         r"""
         Fluid initialisation for fluid mixture at outlet of the node.
 
@@ -1324,7 +1388,7 @@ class splitter(node):
 
         **additional equations**
 
-        - :func:`tespy.components.components.splitter.additional_equations`
+        - :func:`tespy.components.nodes.splitter.additional_equations`
 
     Inlets/Outlets
 
@@ -1348,6 +1412,21 @@ class splitter(node):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
 
     num_out : float/tespy.helpers.dc_simple
         Number of outlets for this component, default value: 2.
@@ -1396,17 +1475,20 @@ class splitter(node):
     20.0
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'splitter'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'num_out': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
     def outlets(self):
-        if self.num_out.val_set:
+        if self.num_out.is_set:
             return ['out' + str(i + 1) for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
@@ -1421,8 +1503,7 @@ class splitter(node):
 
     def additional_equations(self):
         r"""
-        Calculates vector vec_res with results of additional equations for
-        this component.
+        Calculate vector vec_res with results of additional equations.
 
         Equations
 
@@ -1457,8 +1538,7 @@ class splitter(node):
 
     def additional_derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given additional
-        equations.
+        Calculate partial derivatives for given additional equations.
 
         Returns
         -------
@@ -1471,7 +1551,7 @@ class splitter(node):
 
     def fluid_deriv(self):
         r"""
-        Calculates the partial derivatives for all fluid balance equations.
+        Calculate partial derivatives for all fluid balance equations.
 
         Returns
         -------
@@ -1492,7 +1572,7 @@ class splitter(node):
 
     def enthalpy_deriv(self):
         r"""
-        Calculates matrix of partial derivatives for enthalpy balance equation.
+        Calculate partial derivatives for enthalpy balance equation.
 
         Returns
         -------
@@ -1508,7 +1588,8 @@ class splitter(node):
 
         return deriv.tolist()
 
-    def initialise_fluids(self, nw):
+    @staticmethod
+    def initialise_fluids(nw):
         r"""
         Fluid initialisation for fluid mixture at outlet of the node.
 

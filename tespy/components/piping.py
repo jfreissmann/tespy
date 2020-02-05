@@ -20,7 +20,7 @@ import numpy as np
 from tespy.components.components import component
 from tespy.components.heat_exchangers import heat_exchanger_simple
 
-from tespy.tools.data_containers import dc_cp, dc_simple
+from tespy.tools.data_containers import dc_cc, dc_cp, dc_simple
 from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
 
 
@@ -29,6 +29,8 @@ from tespy.tools.fluid_properties import s_mix_ph, v_mix_ph
 
 class pipe(heat_exchanger_simple):
     r"""
+    The pipe is a subclass of a simple heat exchanger.
+
     Equations
 
         **mandatory equations**
@@ -38,7 +40,7 @@ class pipe(heat_exchanger_simple):
 
         **optional equations**
 
-        - :func:`tespy.components.components.heat_exchanger_simple.Q_func`
+        - :func:`tespy.components.heat_exchangers.heat_exchanger_simple.Q_func`
 
         .. math::
 
@@ -76,10 +78,25 @@ class pipe(heat_exchanger_simple):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    Q : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    Q : str/float/tespy.helpers.dc_cp
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
     zeta : str/float/tespy.helpers.dc_cp
@@ -96,7 +113,7 @@ class pipe(heat_exchanger_simple):
         Pipes roughness, :math:`ks/\text{m}` for darcy friction,
         :math:`ks/\text{1}` for hazen-williams equation.
 
-    hydro_group : Sring/tespy.helpers.dc_gcp
+    hydro_group : String/tespy.helpers.dc_gcp
         Parametergroup for pressure drop calculation based on pipes dimensions.
         Choose 'HW' for hazen-williams equation, else darcy friction factor is
         used.
@@ -108,7 +125,7 @@ class pipe(heat_exchanger_simple):
     kA_char : str/tespy.helpers.dc_cc
         Characteristic curve for heat transfer coefficient, provide x and y
         values or use generic values (e. g. calculated from design case).
-        Standard method 'HE_COLD', Parameter 'm'.
+        Standard parameter 'm'.
 
     Tamb : float/tespy.helpers.dc_cp
         Ambient temperature, provide parameter in network's temperature
@@ -161,7 +178,8 @@ class pipe(heat_exchanger_simple):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'pipe'
 
 # %%
@@ -169,6 +187,8 @@ class pipe(heat_exchanger_simple):
 
 class valve(component):
     r"""
+    The valve throttles a fluid without changing enthalpy.
+
     Equations
 
         **mandatory equations**
@@ -187,6 +207,9 @@ class valve(component):
             0 = p_{in} \cdot pr - p_{out}
 
         - :func:`tespy.components.components.component.zeta_func`
+
+        - :func:`tespy.components.piping.valve.dp_char_func`
+
 
     Inlets/Outlets
 
@@ -211,12 +234,30 @@ class valve(component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    pr : Sring/float/tespy.helpers.dc_cp
+    design_path: str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings: boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout: boolean
+        Include this component in the network's results printout.
+
+    pr : str/float/tespy.helpers.dc_cp
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     zeta : str/float/tespy.helpers.dc_cp
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+
+    dp_char : str/tespy.helpers.dc_cc
+        Characteristic line for difference pressure to mass flow.
 
     Example
     -------
@@ -263,18 +304,23 @@ class valve(component):
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    def component(self):
+    @staticmethod
+    def component():
         return 'valve'
 
-    def attr(self):
+    @staticmethod
+    def attr():
         return {'pr': dc_cp(min_val=1e-4, max_val=1),
                 'zeta': dc_cp(min_val=0),
+                'dp_char': dc_cc(param='m'),
                 'Sirr': dc_simple()}
 
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1']
 
     def comp_init(self, nw):
@@ -287,7 +333,7 @@ class valve(component):
 
     def equations(self):
         r"""
-        Calculates vector vec_res with results of equations for this component.
+        Calculate vector vec_res with results of equations for this component.
 
         Returns
         -------
@@ -301,29 +347,34 @@ class valve(component):
         vec_res += self.fluid_func()
 
         ######################################################################
-        # eqations for mass flow
+        # eqation for mass flow
         vec_res += self.mass_flow_func()
 
         ######################################################################
-        # eqations for enthalpy
+        # eqation for enthalpy
         vec_res += [self.inl[0].h.val_SI - self.outl[0].h.val_SI]
 
         ######################################################################
-        # eqations for specified pressure ratio
+        # eqation for specified pressure ratio
         if self.pr.is_set:
             vec_res += [self.inl[0].p.val_SI * self.pr.val -
                         self.outl[0].p.val_SI]
 
         ######################################################################
-        # eqations specified zeta
+        # eqation specified zeta
         if self.zeta.is_set:
             vec_res += [self.zeta_func()]
+
+        ######################################################################
+        # equation for specified difference pressure char
+        if self.dp_char.is_set:
+            vec_res += [self.dp_char_func()]
 
         return vec_res
 
     def derivatives(self):
         r"""
-        Calculates matrix of partial derivatives for given equations.
+        Calculate matrix of partial derivatives for given equations.
 
         Returns
         -------
@@ -368,11 +419,16 @@ class valve(component):
                         self.numeric_deriv(self.zeta_func, 'zeta', 2))
             mat_deriv += deriv.tolist()
 
+        ######################################################################
+        # derivatives for specified difference pressure
+        if self.dp_char.is_set:
+            mat_deriv += self.dp_char_deriv()
+
         return np.asarray(mat_deriv)
 
     def enthalpy_deriv(self):
         r"""
-        Calculates matrix of partial derivatives for enthalpy balance equation.
+        Calculate matrix of partial derivatives for enthalpy balance equation.
 
         Returns
         -------
@@ -384,10 +440,44 @@ class valve(component):
         deriv[0, 1, 2] = -1
         return deriv.tolist()
 
+    def dp_char_func(self):
+        r"""
+        Equation for characteristic line of difference pressure to mass flow.
+
+        Returns
+        -------
+        res : ndarray
+            Residual value of equation.
+
+            .. math::
+
+                res =  p_1 - p_2 - f \left( \dot{m} \right)
+        """
+        i = self.inl[0].to_flow()
+        o = self.outl[0].to_flow()
+
+        return i[1] - o[1] - self.dp_char.func.evaluate(i[0])
+
+    def dp_char_deriv(self):
+        r"""
+        Calculate partial derivatives of characteristic line.
+
+        Returns
+        -------
+        deriv : list
+            Matrix of partial derivatives.
+        """
+        deriv = np.zeros((1, 2 + self.num_vars, self.num_fl + 3))
+
+        deriv[0, 0, 0] = self.numeric_deriv(self.dp_char_func, 'm', 0)
+        deriv[0, 0, 1] = 1
+        deriv[0, 1, 1] = -1
+
+        return deriv.tolist()
+
     def initialise_source(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        outlet.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
@@ -416,8 +506,7 @@ class valve(component):
 
     def initialise_target(self, c, key):
         r"""
-        Returns a starting value for pressure and enthalpy at component's
-        inlet.
+        Return a starting value for pressure and enthalpy at inlet.
 
         Parameters
         ----------
@@ -445,9 +534,7 @@ class valve(component):
             return 5e5
 
     def calc_parameters(self):
-        r"""
-        Postprocessing parameter calculation.
-        """
+        r"""Postprocessing parameter calculation."""
         i = self.inl[0].to_flow()
         o = self.outl[0].to_flow()
         self.pr.val = o[1] / i[1]
